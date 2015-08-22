@@ -37,6 +37,7 @@ import os
 import re
 import sys
 import tarfile
+import distutils.spawn
 try:  # Python 3
     from urllib.request import urlopen as _urlopen
 except ImportError:  # Python 2
@@ -243,6 +244,9 @@ def update_bash_profile(extra_paths=()):
 
     Adds nano to the path, sets the default editor to nano, and adds
     additional paths for other executables.
+
+    If the system may be running MinTTY also adds aliases to allow
+    programs to run run using winpty.
     """
     lines = [
         '',
@@ -252,8 +256,18 @@ def update_bash_profile(extra_paths=()):
         '',
         '# Make nano the default editor',
         'export EDITOR=nano',
-        '',
+        ''
         ]
+    haswinpty = distutils.spawn.find_executable('winpty')
+    if haswinpty:
+        lines += ['# Aliases for MinTTY',
+                  '# Try running w/out winpty first and then fall back',
+                  '# Python hangs instead of errors so try winpty',
+                  '#and fall back if it does not exist',
+                  'alias nano="nano || winpty nano"',
+                  'alias python="winpty python || python"',
+                  'alias ipython="winpty ipython || ipython"',
+                  'alias R="R || winpty R"']
     config_path = os.path.join(os.path.expanduser('~'), '.bash_profile')
     LOG.info('update bash profile at {}'.format(config_path))
     LOG.debug('extra paths:\n* {}'.format('\n* '.join(extra_paths)))
